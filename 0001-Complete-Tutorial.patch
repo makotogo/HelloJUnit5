@@ -1,0 +1,836 @@
+From 65865eb930764b177430b52e4af15f7c6c573ae8 Mon Sep 17 00:00:00 2001
+From: johnstewart00 <stew.john560@gmail.com>
+Date: Mon, 22 Jan 2024 21:40:00 -0700
+Subject: [PATCH] Complete Tutorial
+
+---
+ pom.xml                                       |  29 +-
+ .../com/makotojava/learn/hellojunit5/App.java |  29 +-
+ .../learn/hellojunit5/JUnit5AppTest.java      | 206 ++++++++------
+ .../hellojunit5/solution/JUnit5AppTest.java   | 254 +++++++++---------
+ 4 files changed, 290 insertions(+), 228 deletions(-)
+
+diff --git a/pom.xml b/pom.xml
+index 7fa816b..2f5b198 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -21,6 +21,23 @@
+ 
+ 	<build>
+ 		<plugins>
++			<plugin>
++				<groupId>org.apache.maven.plugins</groupId>
++				<artifactId>maven-surefire-report-plugin</artifactId>
++				<version>3.0.0-M5</version>
++				<configuration>
++                	<linkXRef>false</linkXRef>
++            	</configuration>
++				<executions>
++					<execution>
++						<id>generate-report</id>
++						<phase>post-integration-test</phase>
++						<goals>
++							<goal>report-only</goal>
++						</goals>
++					</execution>
++				</executions>
++			</plugin>
+ 			<plugin>
+ 				<groupId>org.apache.maven.plugins</groupId>
+ 				<artifactId>maven-compiler-plugin</artifactId>
+@@ -81,23 +98,11 @@
+ 			<version>${junit.jupiter.version}</version>
+ 			<scope>test</scope>
+ 		</dependency>
+-		<dependency>
+-			<groupId>org.junit.platform</groupId>
+-			<artifactId>junit-platform-runner</artifactId>
+-			<version>${junit.platform.version}</version>
+-			<scope>test</scope>
+-		</dependency>
+ 		<dependency>
+ 			<groupId>ch.qos.logback</groupId>
+ 			<artifactId>logback-classic</artifactId>
+ 			<version>${logback.version}</version>
+ 		</dependency>
+-    <dependency>
+-      <groupId>org.junit.platform</groupId>
+-      <artifactId>junit-platform-console-standalone</artifactId>
+-      <version>${junit.platform.version}</version>
+-      <scope>test</scope>
+-    </dependency>
+ 	</dependencies>
+ 
+ </project>
+diff --git a/src/main/java/com/makotojava/learn/hellojunit5/App.java b/src/main/java/com/makotojava/learn/hellojunit5/App.java
+index 34b91b0..eeae6f0 100644
+--- a/src/main/java/com/makotojava/learn/hellojunit5/App.java
++++ b/src/main/java/com/makotojava/learn/hellojunit5/App.java
+@@ -2,13 +2,13 @@ package com.makotojava.learn.hellojunit5;
+ 
+ /*
+  * Copyright 2017 Makoto Consulting Group, Inc.
+- * 
++ *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+- * 
++ *
+  * http://www.apache.org/licenses/LICENSE-2.0
+- * 
++ *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+@@ -16,20 +16,21 @@ package com.makotojava.learn.hellojunit5;
+  * limitations under the License.
+  */
+ public class App {
++
+   /**
+    * Computes the sum of the specified operands.
+-   * 
++   *
+    * As an exercise, implement this method so that all of the unit tests
+    * you write for it pass. Once you do that, you're done!
+-   * 
++   *
+    * Hint: if you get stuck, have a look
+    * {@link com.makotojava.learn.hellojunit5.solution.App here}.
+-   * 
++   *
+    * @param operands
+    *          These are the operands. It's sort of there in the name.
+-   * 
++   *
+    * @return long - The computed sum.
+-   * 
++   *
+    * @throws IllegalArgumentException
+    *           If the specified array of operands is empty or long.
+    *           This is definitely an overreaction, but this is sample
+@@ -37,7 +38,17 @@ public class App {
+    */
+   public long add(long[] operands) {
+     // Compute the sum
+-    long ret = Long.MIN_VALUE;
++
++    if (operands == null) {
++      throw new IllegalArgumentException("Operands argument cannot be null");
++    }
++    if (operands.length == 0) {
++      throw new IllegalArgumentException("Operands argument cannot be empty");
++    }
++    long ret = 0;
++    for (long operand : operands) {
++      ret += operand;
++    }
+     // TDD - add this once we run all the unit tests.
+     //
+     // TODO: As an exercise, implement this method so that all of the unit tests
+diff --git a/src/test/java/com/makotojava/learn/hellojunit5/JUnit5AppTest.java b/src/test/java/com/makotojava/learn/hellojunit5/JUnit5AppTest.java
+index d67538c..cf06656 100644
+--- a/src/test/java/com/makotojava/learn/hellojunit5/JUnit5AppTest.java
++++ b/src/test/java/com/makotojava/learn/hellojunit5/JUnit5AppTest.java
+@@ -1,22 +1,24 @@
+ package com.makotojava.learn.hellojunit5;
+ 
+-import static org.junit.jupiter.api.Assertions.fail;
++import static org.junit.jupiter.api.Assertions.*;
+ 
++import java.time.LocalDateTime;
++import java.util.ArrayList;
++import java.util.List;
+ import org.junit.jupiter.api.AfterAll;
+ import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.Assumptions;
+ import org.junit.jupiter.api.BeforeAll;
+ import org.junit.jupiter.api.BeforeEach;
+-import org.junit.jupiter.api.Disabled;
+ import org.junit.jupiter.api.DisplayName;
++import org.junit.jupiter.api.Nested;
+ import org.junit.jupiter.api.Test;
+-import org.junit.platform.runner.JUnitPlatform;
+-import org.junit.runner.RunWith;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
+ /**
+  * JUnit 5 (with JUnitPlatform.class)
+- * 
++ *
+  * Class-level Exercises:
+  * <ol>
+  * <li>Enable Eclipse JUnit support for this test class using the {@link org.junit.runner.RunWith @RunWith} and
+@@ -29,25 +31,31 @@ import org.slf4j.LoggerFactory;
+  */
+ public class JUnit5AppTest {
+ 
++  private App app;
++
+   // Create a JDK Logger here
++  final Logger logger = LoggerFactory.getLogger(JUnit5AppTest.class);
+ 
+   // Create a fixture for the class under test
+ 
+   // Do something before ANY test is run in this class
+-  public static void init() {
+-  }
++  @BeforeAll
++  public static void init() {}
+ 
+   // Do something after ALL tests in this class are run
+-  public static void done() {
+-  }
++  @AfterAll
++  public static void done() {}
+ 
+   // Create an instance of the test class before each @Test method is executed
++  @BeforeEach
++  public void setup() {
++    app = new App();
++  }
+ 
+   // Destroy reference to the instance of the test class after each @Test method is executed
+ 
+   // Disabled test
+-  void testNotRun() {
+-  }
++  void testNotRun() {}
+ 
+   /**
+    * testAdd() - Exercises:
+@@ -66,12 +74,16 @@ public class JUnit5AppTest {
+    * {@link org.junit.jupiter.api.Assertions#assertAll(org.junit.jupiter.api.function.Executable...) assertAll()}
+    * </ol>
+    */
++  @Test
++  @DisplayName("Testing the add function")
+   public void testAdd() {
+     //
+     // EXERCISE: TODO: ADD CODE HERE (See Javadoc comments for instructions. Use the Javadoc View in Eclipse to see the
+     // buttery smooth javadoc above.)
+     //
+-    fail("Test not implemented!");
++    long[] operands = { 4, 5 };
++    long result = app.add(operands);
++    assertEquals(9, result);
+   }
+ 
+   /**
+@@ -90,8 +102,9 @@ public class JUnit5AppTest {
+    * the
+    * test method does (hint: use {@link org.junit.jupiter.api.BeforeEach @AfterEach})</li>
+    * </ol>
+-   * 
++   *
+    */
++  @Nested
+   class NegativeNumbersTest {
+ 
+     /**
+@@ -112,12 +125,12 @@ public class JUnit5AppTest {
+      * {@link org.junit.jupiter.api.Assertions#assertAll(org.junit.jupiter.api.function.Executable...) assertAll()}
+      * </ol>
+      */
++    @Test
++    @DisplayName("Testing negative numbers")
+     public void testAdd() {
+-      //
+-      // EXERCISE: TODO: ADD CODE HERE (See Javadoc comments for instructions. Use the Javadoc View in Eclipse to see
+-      // the buttery smooth javadoc above.)
+-      //
+-      fail("Test not implemented!");
++      long[] operands = { -4, -5 };
++      long result = app.add(operands);
++      assertEquals(-9, result);
+     }
+   }
+ 
+@@ -128,8 +141,9 @@ public class JUnit5AppTest {
+    * <li>Give the class a cool {@link org.junit.jupiter.api.DisplayName @DisplayName} that shows up in the JUnit test
+    * report.</li>
+    * </ol>
+-   * 
++   *
+    */
++  @Nested
+   class PositiveAndNegativeNumbersTest {
+ 
+     /**
+@@ -150,57 +164,67 @@ public class JUnit5AppTest {
+      * {@link org.junit.jupiter.api.Assertions#assertAll(org.junit.jupiter.api.function.Executable...) assertAll()}
+      * </ol>
+      */
++    @Test
++    @DisplayName("Testing negative and positive numbers")
+     public void testAdd() {
+-      //
+-      // EXERCISE: TODO: ADD CODE HERE (See Javadoc comments for instructions. Use the Javadoc View in Eclipse to see
+-      // the buttery smooth javadoc above.)
+-      //
+-      fail("Test not implemented!");
+-    }
+-
+-    /**
+-     * testAdd_OnlyOnFriday - Exercises:
+-     * <ol>
+-     * <li>Tell JUnit this method is a test method.</li>
+-     * <li>Give it a cool display name for the test report.</li>
+-     * <li>Use the JDK 8 Date/Time API to get the current local date/time, along with a simple Assumption (hint: use
+-     * {@link org.junit.jupiter.api.Assumptions#assumeTrue(boolean) assumeTrue()}) that today is Friday
+-     * (or any other day of the week of your choosing, just so you pick one), or the test is skipped.</li>
+-     * <li>Pass the following numbers as operands to the {@link com.makotojava.learn.hellojunit5.App#add(long[]) add}
+-     * method: 1, 2, 3, 4, 5</li>
+-     * <li>Ensure the actual sum matches the expected sum.</li>
+-     * </ol>
+-     */
+-    public void testAdd_OnlyOnFriday() {
+-      //
+-      // EXERCISE: TODO: ADD CODE HERE (See Javadoc comments for instructions. Use the Javadoc View in Eclipse to see
+-      // the buttery smooth javadoc above.)
+-      //
+-      fail("Test not implemented!");
++      long[] operands = { -4, 5 };
++      long result = app.add(operands);
++      assertEquals(1, result);
+     }
++  }
+ 
+-    /**
+-     * testAdd_OnlyOnFriday_WithLambda - Exercises:
+-     * <ol>
+-     * <li>Tell JUnit this method is a test method.</li>
+-     * <li>Give it a cool display name for the test report.</li>
+-     * <li>Use the JDK 8 Date/Time API to get the current local date/time, along with a simple Assumption (hint: use
+-     * {@link org.junit.jupiter.api.Assumptions#assumingThat(boolean, org.junit.jupiter.api.function.Executable)
+-     * assumingThat()}) that today is Friday
+-     * (or any other day of the week of your choosing, just so you pick one), or the test is skipped.</li>
+-     * <li>Pass the following numbers as operands to the {@link com.makotojava.learn.hellojunit5.App#add(long[]) add}
+-     * method: 1, 2, 3, 4, 5</li>
+-     * <li>Ensure the actual sum matches the expected sum.</li>
+-     * </ol>
+-     */
+-    public void testAdd_OnlyOnFriday_WithLambda() {
+-      //
+-      // EXERCISE: TODO: ADD CODE HERE (See Javadoc comments for instructions. Use the Javadoc View in Eclipse to see
+-      // the buttery smooth javadoc above.)
+-      //
+-      fail("Test not implemented!");
+-    }
++  /**
++   * testAdd_OnlyOnFriday - Exercises:
++   * <ol>
++   * <li>Tell JUnit this method is a test method.</li>
++   * <li>Give it a cool display name for the test report.</li>
++   * <li>Use the JDK 8 Date/Time API to get the current local date/time, along with a simple Assumption (hint: use
++   * {@link org.junit.jupiter.api.Assumptions#assumeTrue(boolean) assumeTrue()}) that today is Friday
++   * (or any other day of the week of your choosing, just so you pick one), or the test is skipped.</li>
++   * <li>Pass the following numbers as operands to the {@link com.makotojava.learn.hellojunit5.App#add(long[]) add}
++   * method: 1, 2, 3, 4, 5</li>
++   * <li>Ensure the actual sum matches the expected sum.</li>
++   * </ol>
++   */
++  @Test
++  @DisplayName("This test is only run on Fridays")
++  public void testAdd_OnlyOnFriday() {
++    LocalDateTime ldt = LocalDateTime.now();
++    Assumptions.assumeTrue(ldt.getDayOfWeek().getValue() == 5);
++    // Remainder of test (only executed if assumption holds)...
++    long[] operands = { 4, 5 };
++    long result = app.add(operands);
++    assertEquals(9, result);
++  }
+ 
++  /**
++   * testAdd_OnlyOnFriday_WithLambda - Exercises:
++   * <ol>
++   * <li>Tell JUnit this method is a test method.</li>
++   * <li>Give it a cool display name for the test report.</li>
++   * <li>Use the JDK 8 Date/Time API to get the current local date/time, along with a simple Assumption (hint: use
++   * {@link org.junit.jupiter.api.Assumptions#assumingThat(boolean, org.junit.jupiter.api.function.Executable)
++   * assumingThat()}) that today is Friday
++   * (or any other day of the week of your choosing, just so you pick one), or the test is skipped.</li>
++   * <li>Pass the following numbers as operands to the {@link com.makotojava.learn.hellojunit5.App#add(long[]) add}
++   * method: 1, 2, 3, 4, 5</li>
++   * <li>Ensure the actual sum matches the expected sum.</li>
++   * </ol>
++   */
++  @Test
++  @DisplayName("This test is only run on Fridays (with lambda)")
++  public void testAdd_OnlyOnFriday_WithLambda() {
++    logger.info("ASSUMPTIONS");
++    LocalDateTime ldt = LocalDateTime.now();
++    Assumptions.assumingThat(
++      ldt.getDayOfWeek().getValue() == 5,
++      () -> {
++        // Execute this if assumption holds...
++        long[] operands = { 4, 5 };
++        long result = app.add(operands);
++        assertEquals(9, result);
++      }
++    );
+   }
+ 
+   /**
+@@ -210,8 +234,9 @@ public class JUnit5AppTest {
+    * <li>Give the class a cool {@link org.junit.jupiter.api.DisplayName @DisplayName} that shows up in the JUnit test
+    * report.</li>
+    * </ol>
+-   * 
++   *
+    */
++  @Nested
+   class JUnit5AppSingleOperandTest {
+ 
+     /**
+@@ -231,12 +256,11 @@ public class JUnit5AppTest {
+      * {@link org.junit.jupiter.api.Assertions#assertAll(org.junit.jupiter.api.function.Executable...) assertAll()}
+      * </ol>
+      */
++    @Test
++    @DisplayName("Make sure reference is not null")
+     public void testAdd_NumbersGt0() {
+-      //
+-      // EXERCISE: TODO: ADD CODE HERE (See Javadoc comments for instructions. Use the Javadoc View in Eclipse to see
+-      // the buttery smooth javadoc above.)
+-      //
+-      fail("Test not implemented!");
++      long[] operands = null;
++      assertThrows(IllegalArgumentException.class, () -> app.add(operands));
+     }
+ 
+     /**
+@@ -256,12 +280,23 @@ public class JUnit5AppTest {
+      * {@link org.junit.jupiter.api.Assertions#assertAll(org.junit.jupiter.api.function.Executable...) assertAll()}
+      * </ol>
+      */
++    @Test
++    @DisplayName("Comparing multiple arguments")
+     public void testAdd_NumbersLt0() {
+-      //
+-      // EXERCISE: TODO: ADD CODE HERE (See Javadoc comments for instructions. Use the Javadoc View in Eclipse to see
+-      // the buttery smooth javadoc above.)
+-      //
+-      fail("Test not implemented!");
++      long[] operands1 = { -1, -10 };
++      long[] operands2 = { -1, -10 };
++      assertAll(
++        "make sure it works with 2, and not null argument or class",
++        () -> assertNotNull(app),
++        () -> assertNotNull(operands1),
++        () -> assertNotNull(operands2),
++        () ->
++          assertEquals(
++            app.add(operands1),
++            app.add(operands2),
++            "they weren't equal"
++          )
++      );
+     }
+   }
+ 
+@@ -272,9 +307,10 @@ public class JUnit5AppTest {
+    * <li>Give the class a cool {@link org.junit.jupiter.api.DisplayName @DisplayName} that shows up in the JUnit test
+    * report.</li>
+    * </ol>
+-   * 
++   *
+    */
+-  class JUnit5AppZeroOperandsTest {
++  @Nested
++  public class JUnit5AppZeroOperandsTest {
+ 
+     /**
+      * testAdd_ZeroOperands_EmptyArgument() - Exercises:
+@@ -289,12 +325,12 @@ public class JUnit5AppTest {
+      * assertThrows()} method).</li>
+      * </ol>
+      */
++    @Test
++    @DisplayName("Empty argument")
+     public void testAdd_ZeroOperands_EmptyArgument() {
+-      //
+-      // EXERCISE: TODO: ADD CODE HERE (See Javadoc comments for instructions. Use the Javadoc View in Eclipse to see
+-      // the buttery smooth javadoc above.)
+-      //
+-      fail("Test not implemented!");
++      long[] numbersToSum = {};
++      logger.info("We should be throwing");
++      assertThrows(IllegalArgumentException.class, () -> app.add(numbersToSum));
+     }
+ 
+     /**
+@@ -318,7 +354,5 @@ public class JUnit5AppTest {
+       //
+       fail("Test not implemented!");
+     }
+-
+   }
+-
+ }
+diff --git a/src/test/java/com/makotojava/learn/hellojunit5/solution/JUnit5AppTest.java b/src/test/java/com/makotojava/learn/hellojunit5/solution/JUnit5AppTest.java
+index 2cb72c1..0cb593e 100644
+--- a/src/test/java/com/makotojava/learn/hellojunit5/solution/JUnit5AppTest.java
++++ b/src/test/java/com/makotojava/learn/hellojunit5/solution/JUnit5AppTest.java
+@@ -2,13 +2,13 @@ package com.makotojava.learn.hellojunit5.solution;
+ 
+ /*
+  * Copyright 2017 Makoto Consulting Group, Inc.
+- * 
++ *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+- * 
++ *
+  * http://www.apache.org/licenses/LICENSE-2.0
+- * 
++ *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
+ import static org.junit.jupiter.api.Assumptions.assumingThat;
+ 
+ import java.time.LocalDateTime;
+-
+ import org.junit.jupiter.api.AfterAll;
+ import org.junit.jupiter.api.AfterEach;
+ import org.junit.jupiter.api.BeforeAll;
+@@ -32,8 +31,6 @@ import org.junit.jupiter.api.Disabled;
+ import org.junit.jupiter.api.DisplayName;
+ import org.junit.jupiter.api.Nested;
+ import org.junit.jupiter.api.Test;
+-import org.junit.platform.runner.JUnitPlatform;
+-import org.junit.runner.RunWith;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
+@@ -41,12 +38,12 @@ import org.slf4j.LoggerFactory;
+  * JUnit 5 (with JUnitPlatform.class)
+  *
+  */
+-@Disabled
+-@RunWith(JUnitPlatform.class)
+ @DisplayName("Testing using JUnit 5")
+ public class JUnit5AppTest {
+ 
+-  private static final Logger log = LoggerFactory.getLogger(JUnit5AppTest.class);
++  private static final Logger log = LoggerFactory.getLogger(
++    JUnit5AppTest.class
++  );
+ 
+   private App classUnderTest;
+ 
+@@ -87,30 +84,31 @@ public class JUnit5AppTest {
+     log.info("@Test: testAdd()");
+     assertNotNull(classUnderTest);
+     assertAll(
+-        () -> {
+-          //
+-          // Test #1
+-          long[] numbersToSum = { 1, 2, 3, 4 };
+-          long expectedSum = 10;
+-          long actualSum = classUnderTest.add(numbersToSum);
+-          assertEquals(expectedSum, actualSum);
+-        },
+-        () -> {
+-          //
+-          // Test #2
+-          long[] numbersToSum = new long[] { 20, 934, 110 };
+-          long expectedSum = 1064;
+-          long actualSum = classUnderTest.add(numbersToSum);
+-          assertEquals(expectedSum, actualSum);
+-        },
+-        () -> {
+-          //
+-          // Test #3
+-          long[] numbersToSum = new long[] { 2, 4, 6 };
+-          long expectedSum = 12;
+-          long actualSum = classUnderTest.add(numbersToSum);
+-          assertEquals(expectedSum, actualSum);
+-        });
++      () -> {
++        //
++        // Test #1
++        long[] numbersToSum = { 1, 2, 3, 4 };
++        long expectedSum = 10;
++        long actualSum = classUnderTest.add(numbersToSum);
++        assertEquals(expectedSum, actualSum);
++      },
++      () -> {
++        //
++        // Test #2
++        long[] numbersToSum = new long[] { 20, 934, 110 };
++        long expectedSum = 1064;
++        long actualSum = classUnderTest.add(numbersToSum);
++        assertEquals(expectedSum, actualSum);
++      },
++      () -> {
++        //
++        // Test #3
++        long[] numbersToSum = new long[] { 2, 4, 6 };
++        long expectedSum = 12;
++        long actualSum = classUnderTest.add(numbersToSum);
++        assertEquals(expectedSum, actualSum);
++      }
++    );
+   }
+ 
+   @Nested
+@@ -134,30 +132,31 @@ public class JUnit5AppTest {
+     public void testAdd() {
+       assertNotNull(classUnderTest);
+       assertAll(
+-          () -> {
+-            //
+-            // Test #1
+-            long[] numbersToSum = { -1, -2, -3, -4 };
+-            long expectedSum = -10;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          },
+-          () -> {
+-            //
+-            // Test #2
+-            long[] numbersToSum = { -20, -934, -110 };
+-            long expectedSum = -1064;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          },
+-          () -> {
+-            //
+-            // Test #3
+-            long[] numbersToSum = new long[] { -2, -4, -6 };
+-            long expectedSum = -12;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          });
++        () -> {
++          //
++          // Test #1
++          long[] numbersToSum = { -1, -2, -3, -4 };
++          long expectedSum = -10;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        },
++        () -> {
++          //
++          // Test #2
++          long[] numbersToSum = { -20, -934, -110 };
++          long expectedSum = -1064;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        },
++        () -> {
++          //
++          // Test #3
++          long[] numbersToSum = new long[] { -2, -4, -6 };
++          long expectedSum = -12;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        }
++      );
+     }
+   }
+ 
+@@ -170,30 +169,31 @@ public class JUnit5AppTest {
+     public void testAdd() {
+       assertNotNull(classUnderTest);
+       assertAll(
+-          () -> {
+-            //
+-            // Test #1
+-            long[] numbersToSum = { -1, 2, -3, 4 };
+-            long expectedSum = 2;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          },
+-          () -> {
+-            //
+-            // Test #2
+-            long[] numbersToSum = { -20, 934, -110 };
+-            long expectedSum = 804;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          },
+-          () -> {
+-            //
+-            // Test #3
+-            long[] numbersToSum = new long[] { -2, -4, 6 };
+-            long expectedSum = 0;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          });
++        () -> {
++          //
++          // Test #1
++          long[] numbersToSum = { -1, 2, -3, 4 };
++          long expectedSum = 2;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        },
++        () -> {
++          //
++          // Test #2
++          long[] numbersToSum = { -20, 934, -110 };
++          long expectedSum = 804;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        },
++        () -> {
++          //
++          // Test #3
++          long[] numbersToSum = new long[] { -2, -4, 6 };
++          long expectedSum = 0;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        }
++      );
+     }
+ 
+     @Test
+@@ -201,7 +201,10 @@ public class JUnit5AppTest {
+     public void testAdd_OnlyOnFriday() {
+       assertNotNull(classUnderTest);
+       LocalDateTime ldt = LocalDateTime.now();
+-      assumeTrue(ldt.getDayOfWeek().getValue() == 5, "Test skipped... it's not Friday!");
++      assumeTrue(
++        ldt.getDayOfWeek().getValue() == 5,
++        "Test skipped... it's not Friday!"
++      );
+       assumeTrue(ldt.getDayOfWeek().getValue() == 5);
+       long[] operands = { 1, 2, 3, 4, 5 };
+       long expectedSum = 15;
+@@ -214,15 +217,16 @@ public class JUnit5AppTest {
+     public void testAdd_OnlyOnFriday_WithLambda() {
+       assertNotNull(classUnderTest);
+       LocalDateTime ldt = LocalDateTime.now();
+-      assumingThat(ldt.getDayOfWeek().getValue() == 5,
+-          () -> {
+-            long[] operands = { 1, 2, 3, 4, 5 };
+-            long expectedSum = 15;
+-            long actualSum = classUnderTest.add(operands);
+-            assertEquals(expectedSum, actualSum);
+-          });
++      assumingThat(
++        ldt.getDayOfWeek().getValue() == 5,
++        () -> {
++          long[] operands = { 1, 2, 3, 4, 5 };
++          long expectedSum = 15;
++          long actualSum = classUnderTest.add(operands);
++          assertEquals(expectedSum, actualSum);
++        }
++      );
+     }
+-
+   }
+ 
+   @Nested
+@@ -234,18 +238,19 @@ public class JUnit5AppTest {
+     public void testAdd_NumbersGt0() {
+       assertNotNull(classUnderTest);
+       assertAll(
+-          () -> {
+-            long[] numbersToSum = { 1 };
+-            long expectedSum = 1;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          },
+-          () -> {
+-            long[] numbersToSum = { 0 };
+-            long expectedSum = 0;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          });
++        () -> {
++          long[] numbersToSum = { 1 };
++          long expectedSum = 1;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        },
++        () -> {
++          long[] numbersToSum = { 0 };
++          long expectedSum = 0;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        }
++      );
+     }
+ 
+     @Test
+@@ -253,18 +258,19 @@ public class JUnit5AppTest {
+     public void testAdd_NumbersLt0() {
+       assertNotNull(classUnderTest);
+       assertAll(
+-          () -> {
+-            long[] numbersToSum = { -1 };
+-            long expectedSum = -1;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          },
+-          () -> {
+-            long[] numbersToSum = { -10 };
+-            long expectedSum = -10;
+-            long actualSum = classUnderTest.add(numbersToSum);
+-            assertEquals(expectedSum, actualSum);
+-          });
++        () -> {
++          long[] numbersToSum = { -1 };
++          long expectedSum = -1;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        },
++        () -> {
++          long[] numbersToSum = { -10 };
++          long expectedSum = -10;
++          long actualSum = classUnderTest.add(numbersToSum);
++          assertEquals(expectedSum, actualSum);
++        }
++      );
+     }
+   }
+ 
+@@ -272,12 +278,15 @@ public class JUnit5AppTest {
+   @DisplayName("When zero operands")
+   class JUnit5AppZeroOperandsTest {
+ 
+-    @Test()
++    @Test
+     @DisplayName("Empty argument")
+     public void testAdd_ZeroOperands_EmptyArgument() {
+       assertNotNull(classUnderTest);
+       long[] numbersToSum = {};
+-      assertThrows(IllegalArgumentException.class, () -> classUnderTest.add(numbersToSum));
++      assertThrows(
++        IllegalArgumentException.class,
++        () -> classUnderTest.add(numbersToSum)
++      );
+     }
+ 
+     @Test
+@@ -285,11 +294,14 @@ public class JUnit5AppTest {
+     public void testAdd_ZeroOperands_NullArgument() {
+       assertNotNull(classUnderTest);
+       long[] numbersToSum = null;
+-      Throwable expectedException = assertThrows(IllegalArgumentException.class,
+-          () -> classUnderTest.add(numbersToSum));
+-      assertEquals("Operands argument cannot be null", expectedException.getLocalizedMessage());
++      Throwable expectedException = assertThrows(
++        IllegalArgumentException.class,
++        () -> classUnderTest.add(numbersToSum)
++      );
++      assertEquals(
++        "Operands argument cannot be null",
++        expectedException.getLocalizedMessage()
++      );
+     }
+-
+   }
+-
+ }
+-- 
+2.37.1 (Apple Git-137.1)
+
